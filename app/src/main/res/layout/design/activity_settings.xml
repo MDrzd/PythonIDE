@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.LinearLayoutDesign
+	xmlns:android="http://schemas.android.com/apk/res/android"
+	xmlns:app="http://schemas.android.com/apk/res-auto"
+	android:layout_width="match_parent"
+	android:layout_height="match_parent"
+	android:orientation="vertical">
+
+	<org.appdevforall.codeonthego.layouteditor.editor.palette.containers.MaterialToolbarDesign
+		android:id="@+id/toolbar"
+		android:layout_width="match_parent"
+		android:layout_height="?attr/actionBarSize"
+		android:background="?attr/colorPrimary"
+		app:navigationIcon="@drawable/ic_arrow_back_24"
+		app:title="Settings" />
+
+	<com.google.android.material.card.MaterialCardView
+		android:id="@+id/cardEditor"
+		android:layout_width="match_parent"
+		android:layout_height="wrap_content"
+		android:layout_margin="16dp"
+		app:cardCornerRadius="16dp">
+
+		<org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.LinearLayoutDesign
+			android:layout_width="match_parent"
+			android:layout_height="wrap_content"
+			android:orientation="vertical"
+			android:padding="16dp">
+
+			<org.appdevforall.codeonthego.layouteditor.editor.palette.text.TextViewDesign
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="Editor Settings"
+				android:textSize="18sp"
+				android:textStyle="bold" />
+
+			<org.appdevforall.codeonthego.layouteditor.editor.palette.text.TextViewDesign
+				android:layout_width="wrap_content"
+				android:layout_height="wrap_content"
+				android:text="Configure the editor" />
+
+		</org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.LinearLayoutDesign>
+
+	</com.google.android.material.card.MaterialCardView>
+
+</org.appdevforall.codeonthego.layouteditor.editor.palette.layouts.LinearLayoutDesign>
