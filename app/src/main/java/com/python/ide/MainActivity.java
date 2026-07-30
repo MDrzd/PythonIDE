@@ -1,31 +1,91 @@
 package com.python.ide;
 
 import android.content.Intent;
+import android.content.res.Configuration;
+import android.net.Uri;
 import android.os.Bundle;
-import android.widget.Toast;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.WindowManager;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
-import androidx.recyclerview.widget.LinearLayoutManager;
 
-import com.google.android.material.dialog.MaterialAlertDialogBuilder;
-import com.google.android.material.textfield.TextInputEditText;
-import com.google.android.material.textfield.TextInputLayout;
-import com.python.ide.databinding.ActivityMainBinding;
+import com.chaquo.python.Python;
+import com.chaquo.python.android.AndroidPlatform;
+import com.python.ide.databinding.ActivityEditorBinding;
 
 import java.io.File;
-import java.io.FileWriter;
-import java.util.ArrayList;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 
-public class MainActivity extends AppCompatActivity {
+import io.github.rosemoe.sora.widget.CodeEditor;
+import io.github.rosemoe.sora.widget.schemes.EditorColorScheme;
 
-    private ActivityMainBinding binding;
+public class EditorActivity extends AppCompatActivity {
 
-    private final ArrayList<Project> projectList =
-            new ArrayList<>();
+    private ActivityEditorBinding binding;
 
-    private ProjectAdapter adapter;
+    private CodeEditor editor;
+
+    private Uri currentFileUri = null;
+
+    private File projectDir;
+    private File mainFile;
+
+    private final ActivityResultLauncher<Intent> openFileLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+
+                        if (result.getResultCode() == RESULT_OK
+                                && result.getData() != null) {
+
+                            Uri uri = result.getData().getData();
+
+                            currentFileUri = uri;
+
+                            try {
+
+                                InputStream input =
+                                        getContentResolver()
+                                                .openInputStream(uri);
+
+                                byte[] data = input.readAllBytes();
+
+                                input.close();
+
+                                editor.setText(
+                                        new String(
+                                                data,
+                                                StandardCharsets.UTF_8
+                                        )
+                                );
+
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                            }
+                        }
+                    });
+
+    private final ActivityResultLauncher<Intent> saveFileLauncher =
+            registerForActivityResult(
+                    new ActivityResultContracts.StartActivityForResult(),
+                    result -> {
+
+                        if (result.getResultCode() == RESULT_OK
+                                && result.getData() != null) {
+
+                            currentFileUri =
+                                    result.getData().getData();
+
+                            saveFile();
+                        }
+                    });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,442 +93,301 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
 
         binding =
-                ActivityMainBinding.inflate(
+                ActivityEditorBinding.inflate(
                         getLayoutInflater()
                 );
+                
+                applyKeepScreenOn();
 
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);
 
-        binding.recyclerView.setLayoutManager(
-                new LinearLayoutManager(this)
-        );
-
-        adapter =
-        new ProjectAdapter(
-                projectList,
-                new ProjectAdapter.OnProjectClickListener() {
-
-                    @Override
-                    public void onClick(Project project) {
-
-                        Intent intent =
-                                new Intent(
-                                        MainActivity.this,
-                                        EditorActivity.class
-                                );
-
-                        intent.putExtra(
-                                "project_path",
-                                project.getPath()
-                        );
-
-                        startActivity(intent);
-                    }
-
-                    @Override
-                    public void onLongClick(Project project) {
-
-                        showProjectMenu(project);
-                    }
-                }
-        );
-
-        binding.recyclerView.setAdapter(
-                adapter
-        );
-
-        binding.fab.setOnClickListener(
-                v -> showNewProjectDialog()
-        );
-
-        loadProjects();
-    }
-
-    @Override
-    protected void onResume() {
-
-        super.onResume();
-
-        loadProjects();
-    }
-
-    private void loadProjects() {
-
-        projectList.clear();
-
-        File projectsDir =
-                new File(
-                        getFilesDir(),
-                        "Projects"
-                );
-
-        if (!projectsDir.exists()) {
-            projectsDir.mkdirs();
+        if (!Python.isStarted()) {
+            Python.start(
+                    new AndroidPlatform(this)
+            );
         }
 
-        File[] folders =
-                projectsDir.listFiles();
+        editor = binding.editor;
 
-        if (folders != null) {
+        applyEditorTheme();
 
-            for (File folder : folders) {
-
-                if (folder.isDirectory()) {
-
-                    projectList.add(
-                            new Project(
-                                    folder.getName(),
-                                    folder.getAbsolutePath()
-                            )
-                    );
-                }
-            }
-        }
-
-        adapter.notifyDataSetChanged();
-    }
-
-    private void showNewProjectDialog() {
-
-        TextInputLayout layout =
-                new TextInputLayout(this);
-
-        TextInputEditText editText =
-                new TextInputEditText(this);
-
-        editText.setHint(
-                "Project name"
+        editor.setTextSize(
+                Prefs.getFontSize(this)
         );
 
-        layout.addView(editText);
-
-        int padding =
-                (int) (
-                        20 *
-                        getResources()
-                                .getDisplayMetrics()
-                                .density
-                );
-
-        layout.setPadding(
-                padding,
-                padding,
-                padding,
-                0
+        editor.setWordwrap(
+                Prefs.getWordWrap(this)
         );
 
-        new MaterialAlertDialogBuilder(this)
-                .setTitle(
-                        "New Project"
-                )
-                .setView(layout)
-                .setNegativeButton(
-                        "Cancel",
-                        null
-                )
-                .setPositiveButton(
-                        "Create",
-                        (dialog, which) -> {
+        String projectPath =
+        getIntent().getStringExtra(
+                "project_path"
+        );
 
-                            String name =
-                                    editText
-                                            .getText()
-                                            .toString()
-                                            .trim();
+projectDir =
+        new File(projectPath);
 
-                            if (name.isEmpty()) {
+mainFile =
+        new File(
+                projectDir,
+                "main.py"
+        );
 
-                                Toast.makeText(
-                                        this,
-                                        "Project name cannot be empty",
-                                        Toast.LENGTH_SHORT
-                                ).show();
+loadProject();
 
-                                return;
-                            }
+        binding.fab.setOnClickListener(v -> {
 
-                            createProject(name);
-                        }
-                )
-                .show();
+            if (Prefs.getAutoSave(this)) {
+        saveProject();
     }
 
-    private void createProject(
-            String name
-    ) {
-
-        File projectsDir =
-                new File(
-                        getFilesDir(),
-                        "Projects"
-                );
-
-        if (!projectsDir.exists()) {
-            projectsDir.mkdirs();
-        }
-
-        File projectDir =
-                new File(
-                        projectsDir,
-                        name
-                );
-
-        if (projectDir.exists()) {
-
-            Toast.makeText(
+    Intent intent =
+            new Intent(
                     this,
-                    "Project already exists",
-                    Toast.LENGTH_SHORT
-            ).show();
+                    TerminalActivity.class
+            );
 
-            return;
-        }
+            intent.putExtra(
+                    "code",
+                    editor.getText().toString()
+            );
 
-        projectDir.mkdirs();
-
-        try {
-
-            File mainPy =
-                    new File(
-                            projectDir,
-                            "main.py"
-                    );
-
-            FileWriter writer =
-        new FileWriter(mainPy);
-
-writer.write(
-        """
-print("Hello, World!")
-
-"""
-);
-
-writer.close();
-        } catch (Exception e) {
-
-            e.printStackTrace();
-
-            Toast.makeText(
-                    this,
-                    "Failed to create project",
-                    Toast.LENGTH_SHORT
-            ).show();
-
-            return;
-        }
-
-        loadProjects();
-
-        Intent intent =
-                new Intent(
-                        this,
-                        EditorActivity.class
-                );
-
-        intent.putExtra(
-        "project_path",
-        projectDir.getAbsolutePath()
-);
-
-        startActivity(intent);
+            startActivity(intent);
+        });
     }
     
-     private void showProjectMenu(
-        Project project
-) {
+@Override
+protected void onResume() {
 
-    String[] options = {
-            "Rename",
-            "Clone",
-            "Delete"
-    };
+    super.onResume();
 
-    new MaterialAlertDialogBuilder(this)
-            .setTitle(project.getName())
-            .setItems(options, (dialog, which) -> {
+    editor.setTextSize(
+            Prefs.getFontSize(this)
+    );
 
-                switch (which) {
+    editor.setWordwrap(
+            Prefs.getWordWrap(this)
+    );
 
-                    case 0:
-                        showRenameDialog(project);
-                        break;
-
-                    case 1:
-                        cloneProject(project);
-                        break;
-
-                    case 2:
-                        showDeleteDialog(project);
-                        break;
-                }
-
-            })
-            .show();
+    applyKeepScreenOn();
 }
 
-       private void showRenameDialog(Project project) {
+    @Override
+    public void onConfigurationChanged(
+            Configuration newConfig
+    ) {
 
-    TextInputLayout layout = new TextInputLayout(this);
-    TextInputEditText editText = new TextInputEditText(this);
+        super.onConfigurationChanged(newConfig);
 
-    editText.setText(project.getName());
-    layout.addView(editText);
-
-    new MaterialAlertDialogBuilder(this)
-            .setTitle("Rename Project")
-            .setView(layout)
-            .setPositiveButton("Rename", (dialog, which) -> {
-
-                String newName = editText.getText().toString().trim();
-
-                if (newName.isEmpty()) {
-                    return;
-                }
-
-                File oldDir = new File(project.getPath());
-                File newDir = new File(oldDir.getParent(), newName);
-
-                if (newDir.exists()) {
-                    Toast.makeText(this,
-                            "Project already exists",
-                            Toast.LENGTH_SHORT).show();
-                    return;
-                }
-
-                if (oldDir.renameTo(newDir)) {
-                    loadProjects();
-                }
-
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
-}
-
-      private void showDeleteDialog(Project project) {
-
-    new MaterialAlertDialogBuilder(this)
-            .setTitle("Delete Project")
-            .setMessage("Delete \"" + project.getName() + "\" ?")
-            .setPositiveButton("Delete", (dialog, which) -> {
-
-                deleteRecursive(
-                        new File(project.getPath())
-                );
-
-                loadProjects();
-
-            })
-            .setNegativeButton("Cancel", null)
-            .show();
-}
-
-      private void deleteRecursive(File file) {
-
-    if (file.isDirectory()) {
-
-        File[] files = file.listFiles();
-
-        if (files != null) {
-
-            for (File child : files) {
-                deleteRecursive(child);
-            }
+        if (editor != null) {
+            applyEditorTheme();
         }
     }
 
-    file.delete();
-}
+@Override
+protected void onPause() {
 
-         private void cloneProject(Project project) {
+    super.onPause();
 
-    File source = new File(project.getPath());
-
-    File parent = source.getParentFile();
-
-    String baseName = project.getName() + "_copy";
-
-    File dest = new File(parent, baseName);
-
-    int index = 2;
-
-    while (dest.exists()) {
-        dest = new File(parent, baseName + index);
-        index++;
-    }
-
-    try {
-
-        copyDirectory(source, dest);
-
-        Toast.makeText(
-                this,
-                "Project cloned",
-                Toast.LENGTH_SHORT
-        ).show();
-
-        loadProjects();
-
-    } catch (Exception e) {
-
-        e.printStackTrace();
-
-        Toast.makeText(
-                this,
-                "Clone failed",
-                Toast.LENGTH_SHORT
-        ).show();
+    if (Prefs.getAutoSave(this)) {
+        saveProject();
     }
 }
 
-      private void copyDirectory(
-        File source,
-        File dest
-) throws Exception {
+    private void applyEditorTheme() {
 
-    if (source.isDirectory()) {
+        int nightModeFlags =
+                getResources()
+                        .getConfiguration()
+                        .uiMode &
+                        Configuration.UI_MODE_NIGHT_MASK;
 
-        if (!dest.exists()) {
-            dest.mkdirs();
+        EditorColorScheme scheme =
+                new EditorColorScheme();
+
+        if (nightModeFlags ==
+                Configuration.UI_MODE_NIGHT_YES) {
+
+            scheme.setColor(
+                    EditorColorScheme.WHOLE_BACKGROUND,
+                    0xff202124
+            );
+
+            scheme.setColor(
+                    EditorColorScheme.TEXT_NORMAL,
+                    0xffeeeeee
+            );
+
+        } else {
+
+            scheme.setColor(
+                    EditorColorScheme.WHOLE_BACKGROUND,
+                    0xffffffff
+            );
+
+            scheme.setColor(
+                    EditorColorScheme.TEXT_NORMAL,
+                    0xff000000
+            );
         }
 
-        File[] files = source.listFiles();
+        editor.setColorScheme(scheme);
+    }
+    
+     private void applyKeepScreenOn() {
 
-        if (files != null) {
+    if (Prefs.getKeepScreenOn(this)) {
 
-            for (File file : files) {
-
-                copyDirectory(
-                        file,
-                        new File(dest, file.getName())
-                );
-            }
-        }
+        getWindow().addFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        );
 
     } else {
 
-        java.io.FileInputStream in =
-                new java.io.FileInputStream(source);
-
-        java.io.FileOutputStream out =
-                new java.io.FileOutputStream(dest);
-
-        byte[] buffer = new byte[4096];
-
-        int length;
-
-        while ((length = in.read(buffer)) > 0) {
-            out.write(buffer, 0, length);
-        }
-
-        in.close();
-        out.close();
+        getWindow().clearFlags(
+                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+        );
     }
 }
 
-      
+    private void loadProject() {
+
+        try {
+
+            if (!mainFile.exists()) {
+
+                mainFile.createNewFile();
+
+                return;
+            }
+
+            FileInputStream input =
+                    new FileInputStream(mainFile);
+
+            byte[] data =
+                    new byte[(int) mainFile.length()];
+
+            input.read(data);
+
+            input.close();
+
+            editor.setText(
+                    new String(
+                            data,
+                            StandardCharsets.UTF_8
+                    )
+            );
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+
+    private void saveProject() {
+
+        try {
+
+            FileOutputStream output =
+                    new FileOutputStream(mainFile);
+
+            output.write(
+                    editor.getText()
+                            .toString()
+                            .getBytes(
+                                    StandardCharsets.UTF_8
+                            )
+            );
+
+            output.close();
+
+        } catch (Exception e) {
+
+            e.printStackTrace();
+        }
+    }
+    
+         private void openFile() {
+
+        Intent intent =
+                new Intent(
+                        Intent.ACTION_OPEN_DOCUMENT
+                );
+
+        intent.setType(
+                "text/*"
+        );
+
+        intent.addCategory(
+                Intent.CATEGORY_OPENABLE
+        );
+
+        openFileLauncher.launch(intent);
+    }
+
+    private void saveFile() {
+
+        if (currentFileUri == null) {
+            return;
+        }
+
+        try {
+
+            OutputStream output =
+                    getContentResolver()
+                            .openOutputStream(
+                                    currentFileUri
+                            );
+
+            output.write(
+                    editor.getText()
+                            .toString()
+                            .getBytes(
+                                    StandardCharsets.UTF_8
+                            )
+            );
+
+            output.close();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void saveAsFile() {
+
+        Intent intent =
+                new Intent(
+                        Intent.ACTION_CREATE_DOCUMENT
+                );
+
+        intent.setType(
+                "text/plain"
+        );
+
+        intent.putExtra(
+                Intent.EXTRA_TITLE,
+                "main.py"
+        );
+
+        saveFileLauncher.launch(intent);
+    }
+    
+     private void undo() {
+
+    if (editor != null) {
+        editor.undo();
+    }
+}
+
+private void redo() {
+
+    if (editor != null) {
+        editor.redo();
+    }
+}
 
     @Override
     protected void onDestroy() {
@@ -478,23 +397,58 @@ writer.close();
         binding = null;
     }
 
-     @Override
-public boolean onCreateOptionsMenu(Menu menu) {
+    @Override
+    public boolean onCreateOptionsMenu(
+            Menu menu
+    ) {
 
-    getMenuInflater().inflate(
-            R.menu.home_menu,
-            menu
-    );
+        getMenuInflater()
+                .inflate(
+                        R.menu.main_menu,
+                        menu
+                );
 
-    return true;
-}
-     @Override
+        return true;
+    }
+
+    @Override
 public boolean onOptionsItemSelected(
         MenuItem item
 ) {
 
-    if (item.getItemId() ==
-            R.id.action_settings) {
+    int id = item.getItemId();
+
+    if (id == R.id.action_open) {
+
+        openFile();
+        return true;
+    }
+
+    if (id == R.id.action_save) {
+
+        saveProject();
+        return true;
+    }
+
+    if (id == R.id.action_save_as) {
+
+        saveAsFile();
+        return true;
+    }
+
+    if (id == R.id.action_undo) {
+
+        editor.undo();
+        return true;
+    }
+
+    if (id == R.id.action_redo) {
+
+        editor.redo();
+        return true;
+    }
+
+    if (id == R.id.action_settings) {
 
         startActivity(
                 new Intent(
@@ -506,6 +460,9 @@ public boolean onOptionsItemSelected(
         return true;
     }
 
-    return super.onOptionsItemSelected(item);
+    return super.onOptionsItemSelected(
+            item
+    );
 }
-}
+
+            }
