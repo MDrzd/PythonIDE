@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+
+# Keep Java classes accessed from Python/Chaquopy callbacks
+-keep class com.python.ide.TerminalActivity { *; }
+-keep class com.python.ide.PythonCallback { *; }
