@@ -45,7 +45,8 @@ public class EditorActivity extends AppCompatActivity {
                         if (result.getResultCode() == RESULT_OK
                                 && result.getData() != null) {
 
-                            Uri uri = result.getData().getData();
+                            Uri uri =
+                                    result.getData().getData();
 
                             currentFileUri = uri;
 
@@ -55,7 +56,8 @@ public class EditorActivity extends AppCompatActivity {
                                         getContentResolver()
                                                 .openInputStream(uri);
 
-                                byte[] data = input.readAllBytes();
+                                byte[] data =
+                                        input.readAllBytes();
 
                                 input.close();
 
@@ -96,14 +98,15 @@ public class EditorActivity extends AppCompatActivity {
                 ActivityEditorBinding.inflate(
                         getLayoutInflater()
                 );
-                
-                applyKeepScreenOn();
+
+        applyKeepScreenOn();
 
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.toolbar);
 
         if (!Python.isStarted()) {
+
             Python.start(
                     new AndroidPlatform(this)
             );
@@ -122,32 +125,32 @@ public class EditorActivity extends AppCompatActivity {
         );
 
         String projectPath =
-        getIntent().getStringExtra(
-                "project_path"
-        );
+                getIntent().getStringExtra(
+                        "project_path"
+                );
 
-projectDir =
-        new File(projectPath);
+        projectDir =
+                new File(projectPath);
 
-mainFile =
-        new File(
-                projectDir,
-                "main.py"
-        );
+        mainFile =
+                new File(
+                        projectDir,
+                        "main.py"
+                );
 
-loadProject();
+        loadProject();
 
         binding.fab.setOnClickListener(v -> {
 
             if (Prefs.getAutoSave(this)) {
-        saveProject();
-    }
+                saveProject();
+            }
 
-    Intent intent =
-            new Intent(
-                    this,
-                    TerminalActivity.class
-            );
+            Intent intent =
+                    new Intent(
+                            this,
+                            TerminalActivity.class
+                    );
 
             intent.putExtra(
                     "code",
@@ -157,22 +160,22 @@ loadProject();
             startActivity(intent);
         });
     }
-    
-@Override
-protected void onResume() {
 
-    super.onResume();
+    @Override
+    protected void onResume() {
 
-    editor.setTextSize(
-            Prefs.getFontSize(this)
-    );
+        super.onResume();
 
-    editor.setWordwrap(
-            Prefs.getWordWrap(this)
-    );
+        editor.setTextSize(
+                Prefs.getFontSize(this)
+        );
 
-    applyKeepScreenOn();
-}
+        editor.setWordwrap(
+                Prefs.getWordWrap(this)
+        );
+
+        applyKeepScreenOn();
+    }
 
     @Override
     public void onConfigurationChanged(
@@ -186,15 +189,15 @@ protected void onResume() {
         }
     }
 
-@Override
-protected void onPause() {
+    @Override
+    protected void onPause() {
 
-    super.onPause();
+        super.onPause();
 
-    if (Prefs.getAutoSave(this)) {
-        saveProject();
+        if (Prefs.getAutoSave(this)) {
+            saveProject();
+        }
     }
-}
 
     private void applyEditorTheme() {
 
@@ -235,22 +238,22 @@ protected void onPause() {
 
         editor.setColorScheme(scheme);
     }
-    
-     private void applyKeepScreenOn() {
 
-    if (Prefs.getKeepScreenOn(this)) {
+    private void applyKeepScreenOn() {
 
-        getWindow().addFlags(
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-        );
+        if (Prefs.getKeepScreenOn(this)) {
 
-    } else {
+            getWindow().addFlags(
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            );
 
-        getWindow().clearFlags(
-                WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
-        );
+        } else {
+
+            getWindow().clearFlags(
+                    WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON
+            );
+        }
     }
-}
 
     private void loadProject() {
 
@@ -308,8 +311,8 @@ protected void onPause() {
             e.printStackTrace();
         }
     }
-    
-         private void openFile() {
+
+    private void openFile() {
 
         Intent intent =
                 new Intent(
@@ -352,6 +355,7 @@ protected void onPause() {
             output.close();
 
         } catch (Exception e) {
+
             e.printStackTrace();
         }
     }
@@ -373,6 +377,20 @@ protected void onPause() {
         );
 
         saveFileLauncher.launch(intent);
+    }
+
+    private void undo() {
+
+        if (editor != null && editor.canUndo()) {
+            editor.undo();
+        }
+    }
+
+    private void redo() {
+
+        if (editor != null && editor.canRedo()) {
+            editor.redo();
+        }
     }
 
     @Override
@@ -402,23 +420,41 @@ protected void onPause() {
             MenuItem item
     ) {
 
-        int id = item.getItemId();
+        int id =
+                item.getItemId();
+
+        if (id == R.id.action_undo) {
+
+            undo();
+
+            return true;
+        }
+
+        if (id == R.id.action_redo) {
+
+            redo();
+
+            return true;
+        }
 
         if (id == R.id.action_open) {
 
             openFile();
+
             return true;
         }
 
         if (id == R.id.action_save) {
 
             saveProject();
+
             return true;
         }
 
         if (id == R.id.action_save_as) {
 
             saveAsFile();
+
             return true;
         }
 
@@ -438,4 +474,4 @@ protected void onPause() {
                 item
         );
     }
-}
+    }
