@@ -7,6 +7,9 @@ import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.WindowManager;
+import android.widget.Button;
+import android.widget.LinearLayout;
+
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -100,6 +103,7 @@ public class EditorActivity extends AppCompatActivity {
                 );
 
         applyKeepScreenOn();
+        setupSymbolBar();
 
         setContentView(binding.getRoot());
 
@@ -254,6 +258,49 @@ public class EditorActivity extends AppCompatActivity {
             );
         }
     }
+
+private void setupSymbolBar() {
+    String[] symbols = new String[]{
+        "Tab", "{}", "()", "[]", ":", ";", "\"", "'", "=", "+", "-", "*", "/", "<", ">", "#"
+    };
+
+    LinearLayout container = binding.symbolContainer;
+
+    int nightModeFlags = getResources().getConfiguration().uiMode & Configuration.UI_MODE_NIGHT_MASK;
+    boolean isDarkMode = (nightModeFlags == Configuration.UI_MODE_NIGHT_YES);
+
+    int textColor = isDarkMode ? 0xFFEEEEEE : 0xFF222222;
+
+    for (String symbol : symbols) {
+        Button btn = new Button(this);
+        btn.setText(symbol);
+        btn.setAllCaps(false);
+        
+        btn.setTextColor(textColor);
+        btn.setBackgroundColor(0x00000000); 
+        btn.setPadding(16, 0, 16, 0);
+
+        btn.setOnClickListener(v -> {
+            if (editor == null) return;
+
+            if ("Tab".equals(symbol)) {
+                editor.insertText("    ", 4);
+            } else if ("{}".equals(symbol)) {
+                editor.insertText("{}", 1);
+            } else if ("()".equals(symbol)) {
+                editor.insertText("()", 1);
+            } else if ("[]".equals(symbol)) {
+                editor.insertText("[]", 1);
+            } else {
+                editor.insertText(symbol, symbol.length());
+            }
+        });
+
+        container.addView(btn);
+    }
+}
+
+
 
     private void loadProject() {
 
