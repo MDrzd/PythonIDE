@@ -26,13 +26,9 @@ public class SettingsActivity extends AppCompatActivity {
                 getLayoutInflater()
         );
 
-        setContentView(
-                binding.getRoot()
-        );
+        setContentView(binding.getRoot());
 
-        setSupportActionBar(
-                binding.toolbar
-        );
+        setSupportActionBar(binding.toolbar);
 
         if (getSupportActionBar() != null) {
             getSupportActionBar().setTitle("Settings");
@@ -45,37 +41,155 @@ public class SettingsActivity extends AppCompatActivity {
 
         loadInstalledLibraries();
 
-        pickWhlLauncher =
-                registerForActivityResult(
-                        new ActivityResultContracts.GetContent(),
-                        uri -> {
+        pickWhlLauncher = registerForActivityResult(
+                new ActivityResultContracts.GetContent(),
+                uri -> {
 
-                            if (uri == null) {
-                                return;
+                    if (uri == null) {
+                        return;
+                    }
+
+                    Executors.newSingleThreadExecutor().execute(() -> {
+
+                        try {
+
+                            WheelInstaller.install(
+                                    SettingsActivity.this,
+                                    uri
+                            );
+
+                            runOnUiThread(() -> {
+
+                                loadInstalledLibraries();
+
+                                Toast.makeText(
+                                        SettingsActivity.this,
+                                        "Library berhasil diinstall",
+                                        Toast.LENGTH_SHORT
+                                ).show();
+
+                            });
+
+                        } catch (Exception e) {
+
+                            e.printStackTrace();
+
+                            runOnUiThread(() ->
+                                    Toast.makeText(
+                                            SettingsActivity.this,
+                                            e.toString(),
+                                            Toast.LENGTH_LONG
+                                    ).show()
+                            );
+                        }
+                    });
+                }
+        );
+
+        binding.cardEditor.setOnClickListener(v ->
+                startActivity(
+                        new Intent(
+                                SettingsActivity.this,
+                                EditorSettingsActivity.class
+                        )
+                )
+        );
+
+        binding.cardWhl.setOnClickListener(v ->
+                pickWhlLauncher.launch("*/*")
+        );
+
+        if (binding.btnPickWhl != null) {
+            binding.btnPickWhl.setOnClickListener(v ->
+                    pickWhlLauncher.launch("*/*")
+            );
+        }
+
+        if (binding.btnOpenLibraries != null) {
+            binding.btnOpenLibraries.setOnClickListener(
+                    v -> PythonLibraryDialog.show(this)
+            );
+        }
+    }
+
+    private void loadInstalledLibraries() {
+
+        File libsDir = new File(
+                getFilesDir(),
+                "python_libs"
+        );
+
+        if (!libsDir.exists()) {
+            binding.txtInstalledWhl.setText(
+                    "Belum ada library terinstall"
+            );
+            return;
+        }
+
+        File[] files = libsDir.listFiles();
+
+        if (files == null || files.length == 0) {
+            binding.txtInstalledWhl.setText(
+                    "Belum ada library terinstall"
+            );
+            return;
+        }
+
+        StringBuilder builder =
+                new StringBuilder();
+
+        builder.append(
+                "Installed Libraries:\n\n"
+        );
+
+        int count = 0;
+
+        for (File file : files) {
+
+            if (!file.isDirectory()) {
+                continue;
+            }
+
+            String name = file.getName();
+
+            if (name.endsWith(".dist-info") ||
+                    name.endsWith(".data") ||
+                    name.equals("__pycache__")) {
+                continue;
+            }
+
+            builder
+                    .append("• ")
+                    .append(name)
+                    .append("\n");
+
+            count++;
+        }
+
+        if (count == 0) {
+            binding.txtInstalledWhl.setText(
+                    "Belum ada library terinstall"
+            );
+            return;
+        }
+
+        binding.txtInstalledWhl.setText(
+                builder.toString()
+        );
+    }
+
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        binding = null;
+    }
                             }
-
-                            Executors.newSingleThreadExecutor()
-                                    .execute(() -> {
-
-                                        try {
-
-                                            WheelInstaller.install(
-                                                    SettingsActivity.this,
-                                                    uri
-                                            );
-
-                                            runOnUiThread(() -> {
-
-                                                loadInstalledLibraries();
-
-                                                Toast.makeText(
-                                                        SettingsActivity.this,
-                                                        "Library berhasil diinstall",
-                                                        Toast.LENGTH_SHORT
-                                                ).show();
-
-                                            });
-
                                         } catch (Exception e) {
 
                                             runOnUiThread(() ->
