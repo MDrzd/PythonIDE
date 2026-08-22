@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
+
 <androidx.coordinatorlayout.widget.CoordinatorLayout
     xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
@@ -9,12 +10,13 @@
         android:id="@+id/toolbar"
         android:layout_width="match_parent"
         android:layout_height="?attr/actionBarSize"
-        app:title="Settings"/>
+        app:title="Settings" />
 
     <ScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="?attr/actionBarSize">
+        android:layout_marginTop="?attr/actionBarSize"
+        android:fillViewport="true">
 
         <LinearLayout
             android:layout_width="match_parent"
@@ -22,41 +24,49 @@
             android:orientation="vertical"
             android:padding="16dp">
 
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardEditor"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginBottom="12dp"
-                app:cardCornerRadius="16dp">
+                app:cardCornerRadius="16dp"
+                app:cardUseCompatPadding="true">
 
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:padding="16dp">
+
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Editor Settings"
                         android:textSize="18sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold" />
+
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Editor Settings"/>
+                        android:text="Configure editor settings" />
+
 
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
 
+
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardWhl"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                app:cardCornerRadius="16dp">
+                app:cardCornerRadius="16dp"
+                app:cardUseCompatPadding="true">
+
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -64,38 +74,64 @@
                     android:orientation="vertical"
                     android:padding="16dp">
 
+
+
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="Install Python Library (.whl)"
                         android:textSize="18sp"
-                        android:textStyle="bold"/>
+                        android:textStyle="bold" />
+
+
 
                     <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="4dp"
-                        android:text="Install library wheel"/>
+                        android:text="Install Python library from a wheel file" />
+
+
 
                     <TextView
                         android:id="@+id/txtInstalledWhl"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="No libraries installed yet"/>
+                        android:text="No libraries installed yet"
+                        android:textSize="14sp" />
 
-                    <Button
-                        android:id="@+id/btnPickWhl"
-                        android:layout_width="wrap_content"
+
+                    <LinearLayout
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:text="Select the whl file"/>
-    
+                        android:orientation="horizontal">
+
+
+                        <Button
+                            android:id="@+id/btnPickWhl"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            android:text="Select .whl" />
+
+                        <Button
+                            android:id="@+id/btnOpenLibraries"
+                            android:layout_width="0dp"
+                            android:layout_height="wrap_content"
+                            android:layout_marginStart="8dp"
+                            android:layout_weight="1"
+                            android:text="Library management" />
+
+
+                    </LinearLayout>
 
 
                 </LinearLayout>
 
             </com.google.android.material.card.MaterialCardView>
+
 
         </LinearLayout>
 
