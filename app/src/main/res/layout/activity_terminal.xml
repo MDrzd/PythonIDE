@@ -7,7 +7,6 @@
     android:layout_height="match_parent"
     android:background="?attr/colorSurface">
 
-
     <com.google.android.material.appbar.AppBarLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
@@ -23,7 +22,6 @@
             app:titleTextColor="?attr/colorOnSurface" />
 
     </com.google.android.material.appbar.AppBarLayout>
-
 
     <ScrollView
         android:id="@+id/outputScroll"
@@ -92,7 +90,7 @@
                     android:padding="0dp"
                     android:singleLine="true"
                     android:textColor="?attr/colorOnSurface"
-                    android:textCursorDrawable="@null"
+                    android:textCursorDrawable="@drawable/terminal_cursor"
                     android:textSize="14sp" />
 
             </LinearLayout>
